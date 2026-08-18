@@ -1,0 +1,301 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>3D Spin Wheel - Doorprize</title>
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    }
+
+    body {
+      overflow: hidden;
+      width: 100vw;
+      height: 100vh;
+      background-color: #1a1a2e;
+      background-size: cover;
+      background-position: center;
+      background-repeat: no-repeat;
+      color: #fff;
+    }
+
+    #canvas-container {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      z-index: 1;
+    }
+
+    /* UI Overlay */
+    .ui-layer {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      z-index: 10;
+      pointer-events: none;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      padding: 20px;
+    }
+
+    .interactive {
+      pointer-events: auto;
+    }
+
+    /* Controls & Buttons */
+    .btn-toggle-settings {
+      position: absolute;
+      top: 20px;
+      right: 20px;
+      background: rgba(255, 255, 255, 0.2);
+      backdrop-filter: blur(10px);
+      border: 1px solid rgba(255, 255, 255, 0.3);
+      color: #fff;
+      font-size: 24px;
+      width: 50px;
+      height: 50px;
+      border-radius: 50%;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.3s ease;
+    }
+
+    .btn-toggle-settings:hover {
+      background: rgba(255, 255, 255, 0.4);
+      transform: rotate(45deg);
+    }
+
+    .controls-bottom {
+      align-self: center;
+      margin-bottom: 30px;
+      display: flex;
+      gap: 15px;
+      align-items: center;
+    }
+
+    .btn-spin {
+      background: linear-gradient(135deg, #ff416c, #ff4b2b);
+      border: none;
+      color: white;
+      padding: 15px 40px;
+      font-size: 22px;
+      font-weight: bold;
+      border-radius: 50px;
+      cursor: pointer;
+      box-shadow: 0 10px 20px rgba(255, 75, 43, 0.4);
+      transition: transform 0.2s, box-shadow 0.2s;
+      text-transform: uppercase;
+      letter-spacing: 2px;
+    }
+
+    .btn-spin:hover {
+      transform: scale(1.05);
+      box-shadow: 0 15px 25px rgba(255, 75, 43, 0.6);
+    }
+
+    .btn-spin:disabled {
+      background: #555;
+      box-shadow: none;
+      cursor: not-allowed;
+      transform: none;
+    }
+
+    /* Winner Board Side Panel */
+    .winner-panel {
+      position: absolute;
+      top: 20px;
+      left: 20px;
+      width: 300px;
+      max-height: 80vh;
+      background: rgba(0, 0, 0, 0.6);
+      backdrop-filter: blur(10px);
+      border-radius: 15px;
+      padding: 20px;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      overflow-y: auto;
+    }
+
+    .winner-panel h3 {
+      margin-bottom: 15px;
+      font-size: 18px;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      color: #f39c12;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+      padding-bottom: 8px;
+    }
+
+    .winner-list {
+      list-style: none;
+    }
+
+    .winner-item {
+      background: rgba(255, 255, 255, 0.1);
+      margin-bottom: 10px;
+      padding: 10px 15px;
+      border-radius: 8px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      animation: fadeIn 0.5s ease;
+    }
+
+    .winner-item .name {
+      font-weight: bold;
+    }
+
+    .winner-item .bib {
+      background: #e74c3c;
+      padding: 2px 8px;
+      border-radius: 4px;
+      font-size: 12px;
+    }
+
+    /* Settings Modal */
+    .modal-settings {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0, 0, 0, 0.8);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      z-index: 100;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.3s ease;
+    }
+
+    .modal-settings.active {
+      opacity: 1;
+      pointer-events: auto;
+    }
+
+    .modal-content {
+      background: #222831;
+      width: 450px;
+      padding: 30px;
+      border-radius: 15px;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      box-shadow: 0 20px 40px rgba(0,0,0,0.5);
+    }
+
+    .modal-content h2 {
+      margin-bottom: 20px;
+      color: #00adb5;
+    }
+
+    .form-group {
+      margin-bottom: 20px;
+    }
+
+    .form-group label {
+      display: block;
+      margin-bottom: 8px;
+      font-size: 14px;
+      color: #ccc;
+    }
+
+    .form-group input, .form-group select {
+      width: 100%;
+      padding: 10px;
+      border-radius: 6px;
+      border: 1px solid #393e46;
+      background: #393e46;
+      color: #fff;
+      font-size: 14px;
+    }
+
+    .btn-close-modal {
+      background: #00adb5;
+      border: none;
+      color: white;
+      padding: 10px 20px;
+      border-radius: 6px;
+      cursor: pointer;
+      width: 100%;
+      font-size: 16px;
+      font-weight: bold;
+      margin-top: 10px;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(-10px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+  </style>
+  
+  <!-- Three.js Library -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+</head>
+<body>
+
+  <div id="canvas-container"></div>
+
+  <div class="ui-layer">
+    <!-- Winner Board -->
+    <div class="winner-panel interactive">
+      <h3>Daftar Pemenang</h3>
+      <ul class="winner-list" id="winnerList">
+        <!-- List Pemenang akan muncul dinamis disini -->
+      </ul>
+    </div>
+
+    <!-- Toggle Settings Button -->
+    <button class="btn-toggle-settings interactive" id="btnToggleSettings">⚙️</button>
+
+    <!-- Spin Control -->
+    <div class="controls-bottom interactive">
+      <button class="btn-spin" id="btnSpin">SPIN</button>
+    </div>
+  </div>
+
+  <!-- Modal Settings -->
+  <div class="modal-settings" id="modalSettings">
+    <div class="modal-content interactive">
+      <h2>Pengaturan Spinwheel</h2>
+      
+      <div class="form-group">
+        <label for="sheetUrl">URL Google Apps Script API</label>
+        <input type="text" id="sheetUrl" placeholder="https://script.google.com/macros/s/.../exec">
+      </div>
+
+      <div class="form-group">
+        <label for="spinCount">Jumlah Pemenang Per-Click (Spin Count)</label>
+        <select id="spinCount">
+          <option value="1">1 Pemenang</option>
+          <option value="2">2 Pemenang</option>
+          <option value="3">3 Pemenang</option>
+          <option value="4">4 Pemenang</option>
+          <option value="5">5 Pemenang</option>
+        </select>
+      </div>
+
+      <div class="form-group">
+        <label for="bgUpload">Upload Background Image</label>
+        <input type="file" id="bgUpload" accept="image/*">
+      </div>
+
+      <button class="btn-close-modal" id="btnCloseModal">Simpan & Tutup</button>
+    </div>
+  </div>
+
+  <!-- File Script Eksternal akan dipanggil di Tahap berikutnya -->
+  <script src="wheel.js"></script>
+  <script src="animation.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
